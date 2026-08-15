@@ -12,6 +12,7 @@ objects through a fast, key-secured REST API. Built on Atlassian Forge by
 - [Troubleshooting](troubleshooting) — common errors and their fixes
 - [Performance](performance) — measured bulk-vs-per-object numbers
 - [Privacy policy](privacy-policy)
+- [Terms of service](terms)
 
 ## Support
 
