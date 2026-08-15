@@ -1,118 +1,85 @@
-# Getting Started
+# Getting started
 
-From zero to your first bulk import in about ten minutes.
+BulkAPI adds a fast, key-secured REST API for bulk operations on Jira
+Service Management **Assets** objects. Everything below happens in your
+Jira site — no servers, no source code, no CLI.
 
-## 1. Deploy and install
+## 1. Install
 
-```bash
-npm install
-forge deploy
-forge install --site <your-site>.atlassian.net --product jira
-```
+Install **BulkAPI — Bulk Assets API for JSM** from the Atlassian
+Marketplace onto your Jira site (site admin required). Assets requires JSM
+Premium/Enterprise.
 
-## 2. Configure your schema — one click
+## 2. Open the admin page
 
-Open **Jira admin → Apps → BulkAPI**. A **Setup wizard** at the top tracks the
-whole path live — workspace → schemas → scoped API key → sync switch — and
-disappears once everything is green. Every schema without an import source
-shows a **Configure for BulkAPI** button. One click:
+**Jira admin (⚙) → Apps → BulkAPI.** The Overview tab shows a setup
+checklist and every Assets schema with its readiness.
 
-- creates the standard source ("BulkAPI Create + Update (…)") with an
-  auto-built mapping over every object type (label attribute as identity,
-  all simple attributes included, selector = object type name),
-- registers it for `schemaName` auto-discovery — create/update work
-  immediately,
-- creates the sync source ("BulkAPI Sync — destructive (…)") with an
-  identity-only mapping. One manual step remains (the setting is UI-only on
-  Atlassian's side): Edit mapping → each object type → **Missing objects:
-  Remove, Threshold 1**. Until you flip it, sync calls are safely refused.
+## 3. Configure a schema (one click, usually)
 
-Prefer manual setup, or need custom mappings? The step-by-step below still
-works.
+Click **Configure** next to a schema. The app creates and wires the import
+sources it needs. If your site refuses app-side creation, the panel guides
+you: create the import in Assets (schema names link straight there:
+*Create import → Bulk Assets Import*), then on the import's row **⋯ →
+Configure app → Register with BulkAPI**.
 
-## 2b. Manual setup (alternative)
+## 4. Create an API key
 
-1. **Object schema + types**: create them in Assets, or script it — see
-   [`scripts/create-dev-schema.js`](../scripts/create-dev-schema.js) for a
-   REST-based bootstrap you can adapt.
-2. **Import source**: in the schema, *Schema settings → Import → Create
-   import → "Bulk Assets Import"*. Then **register it with BulkAPI**: on the
-   new import's row, *⋯ menu → Configure app → Register as Create + Update
-   source* (or *Register as Sync (destructive) source*). Registration seeds
-   the attribute mapping automatically and wires the source into
-   `schemaName` auto-discovery — attributes whose type the import engine
-   cannot represent (tag lists, Time) are skipped and listed; add those by
-   hand in Edit mapping if you need them.
+**API Keys tab → Generate.** Pick scopes: `read` (search/status/setup),
+`write` (create/update/delete), `sync` (destructive mirror — leave off
+unless needed). The key is shown once. One key works for every schema.
 
-   **Naming tip** — import sources are pipes, not operations. One source
-   carries both `create` and `update` (the engine upserts); `delete` by IDs
-   never touches an import source at all; `sync` needs its own destructive
-   source. Name them for their role so the Import tab reads clearly:
-   - `BulkAPI Create + Update (<schema>)` — the standard source
-   - `BulkAPI Sync — destructive (<schema>)` — the Missing Objects: Remove source
-3. **API key**: in *Jira admin → Apps → BulkAPI → API Keys → Generate* — the
-   single place keys are managed. Copy it immediately — it is shown once.
-   Endpoint URLs live on the same admin page (Endpoints tab); the import's
-   own Configure app panel shows its Import ID and Workspace ID.
+## 5. First call
 
-## 3. Discover your endpoints
+Endpoint URLs live on the **Endpoints** tab; full request contracts with
+prefilled examples on the **Documentation** tab. A first create:
 
 ```bash
-curl -s -X POST "<setup-url>" \
+curl -s -X POST "<bulk-operations-url>" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <api-key>" \
-  -d '{"workspaceId": "<workspace-id>"}'
-```
-
-The response lists every endpoint, every schema with its object types, and
-which schemas still need an import source.
-
-## 4. First import
-
-```bash
-curl -s -X POST "<bulk-url>" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <api-key>" \
+  -H "Authorization: Bearer bak_YOURKEY" \
   -d '{
     "operation": "create",
-    "workspaceId": "<workspace-id>",
     "schemaName": "Movies",
-    "mapping": {
-      "objectTypeMappings": [{
-        "objectTypeName": "Movie",
-        "selector": "objects",
-        "attributesMapping": [
-          { "attributeName": "Name", "attributeLocators": ["Name"], "externalIdPart": true },
-          { "attributeName": "Title", "attributeLocators": ["Title"] }
-        ]
-      }]
-    },
-    "objects": [
-      { "Name": "Inception", "Title": "Inception" }
-    ]
+    "mapping": {"objectTypeMappings": [{
+      "objectTypeName": "Movie", "selector": "objects",
+      "attributesMapping": [
+        {"attributeName": "Name", "attributeLocators": ["Name"], "externalIdPart": true},
+        {"attributeName": "Title", "attributeLocators": ["Title"]}
+      ]}]},
+    "objects": [{"Name": "Alien", "Title": "v1"}]
   }'
 ```
 
-You get `202 Accepted` with a `jobId`.
+The response is `{"jobId": "job_…"}` — poll the Job Status endpoint with
+`{"jobId": "...", "waitSeconds": 20}` until `completed`.
 
-## 5. Await the result
+### Python (stdlib only)
 
-```bash
-curl -s -X POST "<status-url>" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <api-key>" \
-  -d '{"jobId": "<jobId>", "waitSeconds": 20}'
+```python
+import json, urllib.request
+
+def call(url, body, key):
+    req = urllib.request.Request(url, json.dumps(body).encode(),
+        {"Content-Type": "application/json", "Authorization": f"Bearer {key}"})
+    return json.load(urllib.request.urlopen(req))
+
+job = call(BULK_URL, {"operation": "create", "schemaName": "Movies",
+                      "mapping": MAPPING, "objects": OBJECTS}, KEY)
+while True:
+    s = call(STATUS_URL, {"jobId": job["jobId"], "waitSeconds": 20}, KEY)
+    if s["job"]["status"] in ("completed", "partial", "failed"): break
+print(s["job"]["importResult"])
 ```
 
-`waitSeconds` holds the response until the job is terminal (or 20 s passes) —
-loop on it and you have an await, no client-side timers. A finished job carries
-per-type results (`objectsCreated`, `objectsUpdated`, `objectsIdentical`,
-`objectsDeleted`) and, for destructive syncs, a count-verified `verification`
-block.
+## 6. Safety rails you get for free
 
-## Next steps
+- `update` with `"strict": true` refuses to silently create.
+- `delete` and `sync` support `"dryRun": true` — see exactly what would be
+  deleted before anything is.
+- Destructive sync requires a dedicated armed source, a `sync`-scoped key,
+  and explicit confirmation for anything that wipes a whole type.
+- **Deletions are permanent** — Assets has no recycle bin. Dry-run first.
 
-- [API reference](api-reference.md) — every operation and field
-- [Authentication](authentication.md) — keys vs OAuth, and the research behind them
-- [Troubleshooting](troubleshooting.md) — the platform's sharp edges, documented
-- [Examples](../examples/) — Node client, Python, curl cookbook
+See the [API reference](api-reference) for every field, and
+[Performance](performance) for what "fast" means in numbers.
