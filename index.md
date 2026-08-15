@@ -15,7 +15,8 @@ objects through a fast, key-secured REST API. Built on Atlassian Forge by
 
 ## Support
 
-Email: `gerd.kukemilk+bulkapi@gmail.com`
+See the [Support page](support) — contact, what to include in a report,
+and how to file security issues.
 
 The app also ships an in-product API reference: **Jira admin → Apps →
 BulkAPI → Documentation**, with examples prefilled for your installation.
