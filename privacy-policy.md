@@ -1,13 +1,13 @@
 # BulkAPI — Privacy Policy
 
-**Publisher:** HaviBit · **App:** BulkAPI — Bulk Assets API for JSM (Atlassian Forge app)
-**Last updated:** 2026-08-16
+**Publisher:** Havibit OÜ · **App:** BulkAPI — Bulk Assets API for JSM (Atlassian Forge app)
+**Last updated:** 2026-08-19
 
 ## What the app is
 
 BulkAPI runs entirely on Atlassian's Forge platform, inside Atlassian's
-infrastructure. HaviBit operates no servers of its own and receives no copy
-of your data.
+infrastructure. Havibit OÜ operates no servers of its own and receives no
+copy of your data.
 
 ## Data the app stores
 
@@ -42,5 +42,4 @@ solely for support and debugging.
 
 ## Contact
 
-Privacy questions: the support contact listed on the Atlassian Marketplace
-listing for BulkAPI.
+Privacy questions and support: support@havibit.eu

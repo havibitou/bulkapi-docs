@@ -1,6 +1,6 @@
 # Support
 
-**Email:** `gerd.kukemilk+bulkapi@gmail.com`
+**Email:** `support@havibit.eu`
 
 We aim to answer within **2 business days** (EET/EEST, Estonia). Trial and
 evaluation questions are just as welcome as customer issues.
